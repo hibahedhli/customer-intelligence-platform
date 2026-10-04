@@ -1,0 +1,48 @@
+# Adapter config for the SYNTHETIC demo data produced by `python -m src.generate_data`.
+# It maps the generator's raw column names to the canonical schema (src/schema.py).
+name: synthetic_demo
+kind: synthetic            # "synthetic" or "real": shown in the dashboard and README so demo results are never mistaken for real ones
+description: >
+  Simulated e-commerce transactions (src/generate_data.py, seed 42). NOT real customer data.
+run: null                  # null = default folders (data/processed, models, reports/figures)
+
+source:
+  transactions: ["data/raw/transactions_raw.csv"]
+  customers: "data/raw/customers_raw.csv"
+
+# canonical name : column name in the raw file (null = not available in this dataset)
+columns:
+  customer_id: customer_id
+  order_id: order_id
+  transaction_id: transaction_id
+  date: transaction_date
+  product_id: product_id
+  product_name: null
+  category: product_category
+  quantity: quantity
+  unit_price: unit_price
+  discount: discount
+  payment_method: payment_method
+
+customer_columns:
+  customer_id: customer_id
+  customer_registration_date: customer_registration_date
+  customer_age: customer_age
+  customer_gender: customer_gender
+  customer_location: customer_location
+
+dayfirst: true             # the generator writes 6% of dates as dd/mm/YYYY
+discount: {scale: fraction}
+
+returns:                   # synthetic convention: order ids of returns start with "R" and quantity is negative
+  method: id_prefix
+  column: order_id
+  prefixes: ["R"]
+  require_negative_quantity: true
+
+cleaning:
+  drop_exact_duplicates: true
+  nonpositive_price: impute_product_median   # products have one list price, so the product median is a sound repair
+
+business:
+  gross_margin: 0.30       # ASSUMPTION used by the CLV proxy

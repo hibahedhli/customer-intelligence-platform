@@ -1,0 +1,81 @@
+# ======================================================================================
+# TEMPLATE: copy this file (cp configs/template.yaml configs/my_data.yaml), edit, then
+#   python -m src.pipeline --config configs/my_data.yaml --validate-only   # check mapping, cleaning, history
+#   python -m src.pipeline --config configs/my_data.yaml                   # full run
+# Anything you leave as null is treated as "not available in this dataset" (never invented).
+# ======================================================================================
+name: my_dataset                 # shown in reports and in the dashboard
+kind: real                       # "real" or "synthetic": synthetic runs carry a visible SIMULATED banner
+description: "Where the data comes from, licence, known limitations."
+run: my_dataset                  # output folder: data/runs/<run>/{standardized,processed,models,figures}
+
+source:
+  transactions: ["data/external/my_transactions.csv"]   # one or several files (csv, csv.gz, tsv, xlsx, parquet); all sheets of an xlsx are stacked
+  customers: null                                       # optional customer table; if null customers are derived from the transactions
+  returns: null                                         # optional separate returns/refunds table (same column names as `columns`, or `returns_columns`)
+  read_options: {}                                      # passed to pandas, e.g. {sep: ";", encoding: "latin-1"}
+
+# canonical name : column name in YOUR file
+columns:
+  customer_id: "customer"        # REQUIRED  (rows without one are excluded and counted)
+  order_id: "invoice_no"         # REQUIRED* one purchase event / basket (* may be omitted if transaction_id is mapped: each row = one order)
+  date: "date"                   # REQUIRED  date or datetime (time of day is dropped)
+  quantity: "qty"                # REQUIRED
+  unit_price: "price"            # REQUIRED  any currency
+  transaction_id: null           # optional: unique id of the line (synthesised if null)
+  product_id: null               # optional: enables the 'distinct products' feature
+  product_name: null             # optional (descriptive)
+  category: null                 # optional: enables category features / favourite category
+  discount: null                 # optional: fraction in [0, 1]  (see discount.scale)
+  payment_method: null           # optional (descriptive)
+
+# only used when source.customers is set
+customer_columns:
+  customer_id: null
+  customer_registration_date: null   # if null: approximated by the first purchase date
+  customer_age: null
+  customer_gender: null
+  customer_location: null
+
+date_format: null                # e.g. "%d/%m/%Y %H:%M"; null = automatic (ISO first, then day-first / month-first fallbacks)
+dayfirst: false                  # for ambiguous dates such as 03/04/2020: true = 3 April
+
+discount:
+  scale: fraction                # "fraction" (0.15) or "percent" (15)
+
+# ---- how are returns / cancellations represented? Valid returns are KEPT (flagged), never silently dropped.
+returns:
+  method: negative_quantity      # negative_quantity | id_prefix | flag_column | none | auto
+  column: null                   # id_prefix / flag_column: the column of YOUR file to inspect (id_prefix defaults to the order id column)
+  prefixes: []                   # id_prefix: e.g. ["C"] for cancellation invoices
+  values: []                     # flag_column: values meaning "return", e.g. ["RETURN", "REFUND"]
+  require_negative_quantity: true  # id_prefix: only prefixed rows with negative quantity count as returns
+
+filters:
+  exclude_product_ids: []        # non-product lines (postage, fees, manual adjustments), matched on product_id
+
+cleaning:
+  drop_exact_duplicates: true
+  nonpositive_price: drop        # drop | impute_product_median (only if each product has one stable list price)
+
+analysis:                        # everything null = inferred from the data
+  data_start: null               # optional manual window, e.g. "2019-01-01"
+  data_end: null
+  churn_window_days: null        # optional manual override of the data-derived churn window
+  churn_gap_quantile: 0.95       # window = this quantile of days between consecutive orders, rounded up to 15
+  churn_window_min: 30           # safety range for the derived window
+  churn_window_max: 180
+  min_observation_days: 120      # history before the first training cut-off
+  snapshot_step_days: 30         # spacing of training cut-offs
+  new_customer_days: 60          # RFM 'New customers' rule
+
+modeling:
+  selection_metric: pr_auc       # chosen on VALIDATION data only: pr_auc | roc_auc
+  seed: 42
+
+risk_tiers:
+  high_min_lift: 2.0             # High = churn rate of the flagged group >= 2 x the validation base rate
+  low_max_churn: 0.15            # Low  = churn rate of the group <= 15%
+
+business:
+  gross_margin: 0.30             # ASSUMPTION used by the CLV proxy; replace with your real margin if known

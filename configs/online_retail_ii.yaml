@@ -1,0 +1,54 @@
+# Adapter config for the public UCI "Online Retail II" dataset (UK gift wholesaler, 2009-12-01 -> 2011-12-09).
+# Source:  https://archive.ics.uci.edu/dataset/502/online+retail+ii   (licence: CC BY 4.0 - check the page and cite it)
+# Download online_retail_II.xlsx (two sheets: "Year 2009-2010", "Year 2010-2011"; both are read and stacked)
+# and place it at data/external/online_retail_II.xlsx.  A Kaggle CSV copy works too: list it under source.transactions.
+#
+#   python -m src.pipeline --config configs/online_retail_ii.yaml --validate-only
+#   python -m src.pipeline --config configs/online_retail_ii.yaml
+#
+# NOTE: this mapping was written from the published schema (columns Invoice, StockCode, Description, Quantity,
+# InvoiceDate, Price, Customer ID, Country). It was exercised end-to-end on a structurally identical SIMULATED
+# fixture (configs/retail_style_fixture.yaml), not on the real file, which could not be downloaded in the build
+# environment. Run --validate-only on your copy first.
+name: online_retail_ii
+kind: real
+description: >
+  Online Retail II (UCI): transactions of a UK-based online gift retailer, mostly wholesale customers.
+  Only transactions exist: no customer table, no demographics, no category, no discount.
+run: online_retail_ii
+
+source:
+  transactions: ["data/external/online_retail_II.xlsx"]
+  customers: null
+
+# canonical name : original column (null = not available)
+columns:
+  customer_id: "Customer ID"      # float in the file (13085.0) -> normalised to "13085"; blank = guest checkout (dropped, reported)
+  order_id: "Invoice"             # one invoice = one purchase event
+  transaction_id: null            # no line id -> synthesised
+  date: "InvoiceDate"             # datetime -> time of day dropped
+  product_id: "StockCode"
+  product_name: "Description"
+  category: null                  # NOT available -> category features excluded
+  quantity: "Quantity"
+  unit_price: "Price"
+  discount: null                  # NOT available -> discount = 0 means "unknown"; discount features excluded
+  payment_method: null
+
+customer_columns: {}              # no customer table: derived from transactions
+
+returns:                          # cancellations: invoice number starts with "C", quantity negative
+  method: id_prefix
+  column: "Invoice"
+  prefixes: ["C"]
+  require_negative_quantity: true
+
+filters:                          # non-product lines (postage, fees, manual entries...) are not customer purchases
+  exclude_product_ids: [POST, DOT, M, D, C2, CRUK, "BANK CHARGES", AMAZONFEE, S, B, ADJUST, ADJUST2, TEST001, TEST002, PADS]
+
+cleaning:
+  drop_exact_duplicates: true
+  nonpositive_price: drop         # price 0 / negative rows are free items or adjustments: dropped, not repaired
+
+business:
+  gross_margin: 0.30              # ASSUMPTION (the dataset has no cost data)

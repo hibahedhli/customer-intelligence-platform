@@ -1,0 +1,12 @@
+# Same column mapping as configs/online_retail_ii.yaml, but reads the SIMULATED fixture shipped in
+# examples/retail_style_fixture/ (built by scripts/make_retail_fixture.py). Used for the second-dataset
+# tests and as a runnable demonstration of the adapter: no external download needed.
+extends: online_retail_ii.yaml
+name: retail_style_fixture
+kind: synthetic
+description: >
+  SIMULATED data with the same structure as UCI Online Retail II (see examples/retail_style_fixture/README.md).
+  Not real customers.
+run: retail_style_fixture
+source:
+  transactions: ["examples/retail_style_fixture/transactions.csv.gz"]

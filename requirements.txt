@@ -1,0 +1,18 @@
+# Versions below are the ones the project was built and tested with (Python 3.12).
+pandas==3.0.2
+numpy==2.4.4
+matplotlib==3.10.8
+seaborn==0.13.2
+scikit-learn==1.8.0
+shap==0.52.0
+joblib==1.5.3
+pyyaml==6.0.3
+streamlit==1.65.0
+plotly==7.1.0
+# reading Excel inputs such as Online Retail II (.xlsx)
+openpyxl==3.1.5
+# development / notebooks / tests
+pytest==9.1.1
+nbformat==5.11.1
+nbconvert==7.17.1
+ipykernel==7.4.0
