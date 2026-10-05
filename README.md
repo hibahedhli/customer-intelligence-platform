@@ -16,6 +16,7 @@ Raw file(s)  ->  YAML adapter config  ->  Standardized customer + transaction ta
 ```
 
 ---
+> **Dataset note:** The UCI Online Retail II dataset is **not included in this GitHub repository**. You only need to download it if you want to reproduce the real-data validation run. The project setup and test suite do **not** require the UCI dataset.
 
 ## Real public validation: UCI Online Retail II
 
