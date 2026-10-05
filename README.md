@@ -287,3 +287,11 @@ dashboard/app.py   notebooks/ (6)   sql/queries.sql   scripts/ (notebook builder
 
 ## 10. Future improvements
 Probabilistic CLV (BG/NBD + Gamma-Gamma) and survival analysis; per-category purchase cycles; calibration (isotonic) and scheduled retraining; A/B testing of retention actions and uplift modelling; fairness review; a FastAPI scoring service and model monitoring (PSI, calibration drift); deployment.
+
+## Author
+
+**Hiba Hedhli**
+
+LMI Student — Mathematics & Computer Science
+
+- LinkedIn: [https://www.linkedin.com/in/hibahedhli/]
