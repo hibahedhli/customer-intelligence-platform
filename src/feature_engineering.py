@@ -92,6 +92,7 @@ def compute_features(orders, lines, returns, customers, cutoff) -> pd.DataFrame:
     cutoff = pd.Timestamp(cutoff)
     o = orders[orders.order_date <= cutoff].sort_values(["customer_id", "order_date"]).copy()
     o["gap"] = o.groupby("customer_id").order_date.diff().dt.days
+    o.loc[o["gap"] <= 0, "gap"] = np.nan
     o["age_days"] = (cutoff - o.order_date).dt.days
     o["ym"] = o.order_date.dt.year * 12 + o.order_date.dt.month
     g = o.groupby("customer_id")

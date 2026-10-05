@@ -26,6 +26,41 @@ def test_churn_window_is_recomputed_for_each_dataset():
         raw_q = interpurchase_gaps(d["orders"]).quantile(.95)
         assert d["H"] == int(np.clip(np.ceil(raw_q / 15) * 15, 30, 180))
 
+def test_same_day_orders_do_not_affect_average_gap(tiny):
+    """Same-day orders are separate orders, but they must not create zero-day gaps."""
+    orders = tiny["orders"].copy()
+    customer_id = orders.customer_id.iloc[0]
+    customer_orders = orders[orders.customer_id == customer_id].sort_values("order_date")
+
+    if len(customer_orders) < 2:
+        pytest.skip("fixture customer does not have enough orders")
+
+    first_date = customer_orders.order_date.iloc[0]
+
+    extra = customer_orders.iloc[[0]].copy()
+    extra["order_id"] = "TEST_SAME_DAY_ORDER"
+    extra["order_date"] = first_date
+
+    orders = pd.concat([orders, extra], ignore_index=True)
+
+    features = compute_features(
+        orders,
+        tiny["lines"],
+        tiny["returns"],
+        tiny["customers"],
+        tiny["end"],
+    )
+
+    original = compute_features(
+        tiny["orders"],
+        tiny["lines"],
+        tiny["returns"],
+        tiny["customers"],
+        tiny["end"],
+    )
+    assert features.loc[customer_id, "avg_gap_days"] == pytest.approx(
+        original.loc[customer_id, "avg_gap_days"]
+    )
 
 @pytest.mark.parametrize("H,start,end", [(30, "2018-01-01", "2019-06-30"), (90, "2009-12-01", "2011-12-09"), (150, "2000-03-05", "2003-01-01")])
 def test_split_is_chronological_for_any_dates(H, start, end):

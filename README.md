@@ -17,6 +17,86 @@ Raw file(s)  ->  YAML adapter config  ->  Standardized customer + transaction ta
 
 ---
 
+## Real public validation: UCI Online Retail II
+
+The pipeline was also run end-to-end on the public UCI Online Retail II dataset. This provides a real-world validation example while keeping the raw dataset outside the repository.
+
+| Metric | Result |
+|---|---:|
+| Date range | 2009-12-01 to 2011-12-09 |
+| Rows read | 1,067,371 |
+| Rows retained | 794,163 |
+| Identified customers | 5,852 |
+| Purchase orders | 36,594 |
+| Retained order lines | 776,577 |
+| Returns / cancellations | 17,586 |
+| Derived churn window | **180 days** |
+| P95 purchase gap | 221 days |
+| Selected model | **Gradient Boosting** |
+| Validation PR-AUC | **0.732** |
+| Test ROC-AUC | **0.783** |
+| Test PR-AUC | **0.568** |
+| Test precision | **0.453** |
+| Test recall | **0.828** |
+| Test F1 | **0.586** |
+
+### Model selection
+
+The model was selected using **validation PR-AUC only**. Gradient Boosting achieved a validation PR-AUC of **0.732**, narrowly outperforming Logistic Regression with all available features (**0.730**).
+
+The test set was used once for final evaluation and did not influence model selection.
+
+### Dataset-specific limitations
+
+The UCI dataset does not provide customer registration dates, demographics, payment methods, product categories or discount information. These fields are therefore reported as unavailable rather than fabricated.
+
+Rows without a Customer ID are excluded from customer-level analytics and are reported in the cleaning summary.
+
+## Dashboard preview
+
+The project includes an interactive Streamlit dashboard for exploring customer behaviour, RFM segmentation, customer clusters, churn risk, model explanations, and retention priorities.
+
+### Overview
+
+![Online Retail II dashboard overview](docs/screenshots/online_retail_ii_overview.png)
+
+### RFM segmentation
+
+![RFM segmentation](docs/screenshots/online_retail_ii_rfm.png)
+
+### Customer clustering
+
+![Customer clusters](docs/screenshots/online_retail_ii_clusters.png)
+
+![Cluster profiles](docs/screenshots/online_retail_ii_cluster_profiles.png)
+
+### Churn analytics
+
+![Churn analysis](docs/screenshots/online_retail_ii_churn.png)
+
+![Churn characteristics](docs/screenshots/online_retail_ii_churn_characteristics.png)
+
+![Churn window sensitivity](docs/screenshots/online_retail_ii_churn_window.png)
+
+### Model evaluation
+
+![Model evaluation](docs/screenshots/online_retail_ii_model_evaluatio.png)
+
+### Retention prioritisation
+
+![Retention worklist](docs/screenshots/online_retail_ii_retention_worklist.png)
+
+![Win-back list](docs/screenshots/online_retail_ii_winback_list.png)
+
+### Individual customer analysis
+
+![Individual customer analysis](docs/screenshots/online_retail_ii_individual_customer.png)
+
+![Individual customer history](docs/screenshots/online_retail_ii_individual_customer_history.png)
+
+![Individual customer spend](docs/screenshots/online_retail_ii_individual_customer_spend.png)
+
+
 ## 1. Architecture: raw data / adapter / pipeline
 
 | Layer | Code | Knows about |
@@ -162,15 +242,15 @@ Figures for each run are written to `reports/figures/` (default) or `data/runs/<
 
 ## 6. Dashboard
 
-`streamlit run dashboard/app.py`. Sidebar: choose the dataset run. Tabs: **Overview** (customers, orders, revenue, lapsed share, high-risk count, dates), **Customer segmentation** (RFM, clusters, warnings), **Churn analytics** (model table, risk tiers *with the rule and thresholds of the run*, SHAP, breakdowns, window sensitivity, excluded features), **At-risk customers** (filterable worklist, CSV export, win-back list), **Individual customer** (history, churn gauge, risk-increasing / reducing factors, suggested action), **Method & data** (validation checks, column mapping, cleaning log). Filters/breakdowns that need an unavailable field are replaced by "Not available in this dataset". A banner marks simulated data. Screenshots are not included (no browser in the build environment); the app is smoke-tested programmatically on both datasets with Streamlit's `AppTest`.
+`streamlit run dashboard/app.py`. Sidebar: choose the dataset run. Tabs: **Overview** (customers, orders, revenue, lapsed share, high-risk count, dates), **Customer segmentation** (RFM, clusters, warnings), **Churn analytics** (model table, risk tiers *with the rule and thresholds of the run*, SHAP, breakdowns, window sensitivity, excluded features), **At-risk customers** (filterable worklist, CSV export, win-back list), **Individual customer** (history, churn gauge, risk-increasing / reducing factors, suggested action), **Method & data** (validation checks, column mapping, cleaning log). Filters/breakdowns that need an unavailable field are replaced by "Not available in this dataset". A banner marks simulated data. The repository includes screenshots of the dashboard using the real UCI Online Retail II run. The app is also smoke-tested programmatically on both datasets with Streamlit's `AppTest`.
 
-## 7. Tests (`pytest -q`, 47 tests)
+## 7. Tests (`pytest -q`, 48 tests)
 
 | File | What it proves |
 |---|---|
 | `test_adapter_schema.py` | arbitrary column names map to the canonical schema; missing required fields are detected with suggestions; optional fields absent are flagged, not invented; derived customer table; separate returns table; `extends`, csv/xlsx reading; all shipped configs load |
 | `test_cleaning_returns.py` | missing ids, duplicates, invalid dates / quantities / prices, percent discounts; returns kept under every convention (flag column, prefix, negative quantity, auto); wrong return rule is reported not hidden; returns never count as purchases; row accounting adds up |
-| `test_temporal_and_leakage.py` | dates inferred; churn window recomputed per dataset and equals the documented rule; split chronological for arbitrary dates; short history fails with the clear message; no labels beyond the data; **tampering with / deleting the future leaves past features identical**; labels depend only on (T, T+H]; labels never in the features |
+| `test_temporal_and_leakage.py` | dates inferred; churn window recomputed per dataset and equals the documented rule; split chronological for arbitrary dates; short history fails with the clear message; no labels beyond the data; **tampering with / deleting the future leaves past features identical**; labels depend only on (T, T+H]; labels never in the features; **same-day orders do not create zero-day interpurchase gaps** |
 | `test_models.py` | selection uses validation only; changing test labels changes test metrics but not the selection, thresholds or models; scaler/imputer fitted on train; works with reduced feature sets; unavailable features excluded; SHAP reproduces the selected model's output (tree and linear paths) |
 | `test_portability_e2e.py` | the **full pipeline and the dashboard run on the second dataset**; window, dates, excluded features and risk rule come from that dataset; broken config -> readable message, exit code 2; no synthetic-specific literals in the pipeline code |
 | `test_reproducibility.py` | the second dataset reproduces identical metrics; fixture generator deterministic |
@@ -189,13 +269,13 @@ data/           raw/ (synthetic generator output)  external/ (put real files her
 examples/       retail_style_fixture/ (simulated, Online-Retail-shaped)
 src/            config, schema, adapter, data_processing, validation, feature_engineering, segmentation, churn_model,
                 evaluation, explainability, prioritization, eda, pipeline, sql_analytics, generate_data
-dashboard/app.py   notebooks/ (6)   sql/queries.sql   scripts/ (notebook builder, fixture generator)   tests/ (47)   models/
+dashboard/app.py   notebooks/ (6)   sql/queries.sql   scripts/ (notebook builder, fixture generator)   tests/ (48)   models/
 ```
 
 ## 9. Limitations (please read)
 
 * **Not "any dataset".** Needs customer, order, date, quantity and price per line, enough customers/repeat purchases and roughly 15+ months of history (see 3.7). Only formats readable by pandas (csv, tsv, xlsx, parquet) are supported. Fixes for ambiguous date formats, unusual return conventions, multi-currency or multi-table schemas must be declared in the YAML config (or need a small code extension).
-* **The real Online Retail II mapping has not been run on the real file** in the build environment (download blocked); it was validated on a simulated look-alike. Run `--validate-only` first on your copy.
+* **UCI Online Retail II is a public validation dataset, not production data.** The repository does not redistribute the raw dataset; users should obtain it from the original source and place it under `data/external/` according to the documented configuration.
 * **Simulated demo data** with known mechanisms: reported performance is not evidence about real customers.
 * **Churn is defined by inactivity**, a proxy for "has left". Seasonal or very infrequent buyers can look churned; one window per dataset ignores differences between product categories. The gap distribution is right-censored, so the derived window is probably slightly optimistic.
 * **Guest checkouts and rows without a customer id are excluded** (reported); revenue totals therefore cover identified customers only. Exact-duplicate removal is on by default and can wrongly remove legitimately repeated lines (switch it off in the config).
@@ -206,4 +286,4 @@ dashboard/app.py   notebooks/ (6)   sql/queries.sql   scripts/ (notebook builder
 * Customers with little history have NaN / unreliable behavioural features (tree model handles NaN; logistic imputes the median with a missing-indicator).
 
 ## 10. Future improvements
-Probabilistic CLV (BG/NBD + Gamma-Gamma) and survival analysis; per-category purchase cycles; calibration (isotonic) and scheduled retraining; A/B testing of retention actions and uplift modelling; fairness review; a FastAPI scoring service and model monitoring (PSI, calibration drift); dashboard screenshots and deployment.
+Probabilistic CLV (BG/NBD + Gamma-Gamma) and survival analysis; per-category purchase cycles; calibration (isotonic) and scheduled retraining; A/B testing of retention actions and uplift modelling; fairness review; a FastAPI scoring service and model monitoring (PSI, calibration drift); deployment.
