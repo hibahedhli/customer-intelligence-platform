@@ -294,4 +294,4 @@ Probabilistic CLV (BG/NBD + Gamma-Gamma) and survival analysis; per-category pur
 
 LMI Student — Mathematics & Computer Science
 
-- LinkedIn: [https://www.linkedin.com/in/hibahedhli/]
+- [LinkedIn](https://www.linkedin.com/in/hibahedhli/)
